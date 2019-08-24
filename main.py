@@ -7,6 +7,7 @@ from datetime import datetime
 import threading
 
 request_get_data_flag = False
+temporary_flag = False
 
 def SendGetDataRequest():
     global request_get_data_flag
@@ -88,45 +89,13 @@ print(cmd_stop.payload)
 SendGetDataRequest()
 
 while(1):
+    # global temporary_flag = False
     if request_get_data_flag == True:
         print("Flga request_get_data_flag", request_get_data_flag)
         request_get_data_flag = False
         radio.stopListening()
         message = list("5_CMD_GET_DATA")
-        while len(message)<32:
-            message.append(0)
-        start = time.time()
-        radio.write(message)
-        print("Sent the message: {}".format(message))
-        radio.startListening()
-        while not radio.available(0):
-            time.sleep(1 / 100)
-            if time.time() - start > 2:
-                print("Timed out.")
-                break
-        receivedMessage = []
-        radio.read(receivedMessage, radio.getDynamicPayloadSize())
-        print("Received: {}".format(receivedMessage))
-        print("Translating the receivedMessage into unicode characters")
-        string = ""
-        for n in receivedMessage:
-            # Decode into standard unicode set
-            if (n >= 32 and n <= 126):
-                string += chr(n)
-        print("Out received message decodes to: {}".format(string))
-        res = ParserRecData(string)
-        radio.stopListening()
-        # if res == 5:
-        #     db = MySQLdb.connect(host="192.168.0.51",    # your host, usually localhost
-        #             user="AdminPI",         # your username
-        #             passwd="Magisterka",  # your password
-        #             db="magazyn")        # name of the data base
-        #     cur = db.cursor()
-        #     str_sql = "UPDATE magazyn.`comandsmode` SET exe = '1', date = " +"'"+ datetime.now().strftime('%Y-%m-%d %H:%M:%S')+"'"+ "  WHERE (id = "+ str(myresult[0])+")"
-        #     print(str_sql)
-        #     cur.execute(str_sql)   
-        #     db.commit()
-        #     db.close()
+        temporary_flag = True
     else:
         print("Flga request_get_data_flag", request_get_data_flag)
         db = MySQLdb.connect(host="192.168.0.51",    # your host, usually localhost
@@ -155,42 +124,50 @@ while(1):
             else:
                 message = list("No command to send !!")    
             radio.stopListening()
-            while len(message)<32:
-                message.append(0)
-            start = time.time()
-            radio.write(message)
-            print("Sent the message: {}".format(message))
-            radio.startListening()
-            while not radio.available(0):
-                time.sleep(1 / 100)
-                if time.time() - start > 2:
-                    print("Timed out.")
-                    break
-            receivedMessage = []
-            radio.read(receivedMessage, radio.getDynamicPayloadSize())
-            print("Received: {}".format(receivedMessage))
-            print("Translating the receivedMessage into unicode characters")
-            string = ""
-            for n in receivedMessage:
-                # Decode into standard unicode set
-                if (n >= 32 and n <= 126):
-                    string += chr(n)
-            print("Out received message decodes to: {}".format(string))
-            res = ParserRecData(string)
-            radio.stopListening()
-            if res == 1 or res == 2:
-                db = MySQLdb.connect(host="192.168.0.51",    # your host, usually localhost
-                        user="AdminPI",         # your username
-                        passwd="Magisterka",  # your password
-                        db="magazyn")        # name of the data base
-                cur = db.cursor()
-                str_sql = "UPDATE magazyn.`comandsmode` SET exe = '1', date = " +"'"+ datetime.now().strftime('%Y-%m-%d %H:%M:%S')+"'"+ "  WHERE (id = "+ str(myresult[0])+")"
-                print(str_sql)
-                cur.execute(str_sql)   
-                db.commit()
-                db.close()
+            temporary_flag = True
+    if temporary_flag == True:
+        temporary_flag = False
+        while len(message)<32:
+            message.append(0)
+        start = time.time()
+        radio.write(message)
+        print("Sent the message: {}".format(message))
+        radio.startListening()
+        while not radio.available(0):
+            time.sleep(1 / 100)
+            if time.time() - start > 2:
+                print("Timed out.")
+                break
+        receivedMessage = []
+        radio.read(receivedMessage, radio.getDynamicPayloadSize())
+        print("Received: {}".format(receivedMessage))
+        print("Translating the receivedMessage into unicode characters")
+        string = ""
+        for n in receivedMessage:
+            # Decode into standard unicode set
+            if (n >= 32 and n <= 126):
+                string += chr(n)
+        print("Out received message decodes to: {}".format(string))
+        res = ParserRecData(string)
+        radio.stopListening()
+        if res == 1 or res == 2:
+            db = MySQLdb.connect(host="192.168.0.51",    # your host, usually localhost
+                    user="AdminPI",         # your username
+                    passwd="Magisterka",  # your password
+                    db="magazyn")        # name of the data base
+            cur = db.cursor()
+            str_sql = "UPDATE magazyn.`comandsmode` SET exe = '1', date = " +"'"+ datetime.now().strftime('%Y-%m-%d %H:%M:%S')+"'"+ "  WHERE (id = "+ str(myresult[0])+")"
+            print(str_sql)
+            cur.execute(str_sql)   
+            db.commit()
+            db.close()
+        elif res == 5:
+            db = MySQLdb.connect(host="192.168.0.51",    # your host, usually localhost
+                    user="AdminPI",         # your username
+                    passwd="Magisterka",  # your password
+                    db="magazyn")        # name of the data base
+            cur = db.cursor()
         time.sleep(0.5)
-
 
     
 
