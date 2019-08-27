@@ -8,6 +8,9 @@ import threading
 
 request_get_data_flag = False
 temporary_flag = False
+# ip_address = "192.168.0.51"
+ip_address = "192.168.137.1"
+
 
 def SendGetDataRequest():
     global request_get_data_flag
@@ -22,7 +25,7 @@ class FrameRequest:
 
 def PerformAction(rec_id_card,rec_id_sector,rec_iterator):
     print "Perform action start"
-    db = MySQLdb.connect(host="192.168.0.51",    # your host, usually localhost
+    db = MySQLdb.connect(host=ip_address,    # your host, usually localhost
         user="AdminPI",         # your username
         passwd="Magisterka",  # your password
         db="magazyn")        # name of the data base
@@ -41,27 +44,34 @@ def PerformAction(rec_id_card,rec_id_sector,rec_iterator):
             my_id = x[0]
             my_uid = x[1]
             my_name = x[2]
-            db = MySQLdb.connect(host="192.168.0.51",    # your host, usually localhost
+            db = MySQLdb.connect(host= ip_address,    # your host, usually localhost
                 user="AdminPI",         # your username
                 passwd="Magisterka",  # your password
                 db="magazyn")        # name of the data base
             cur = db.cursor()
-            
             # sprawdzenie czy jest juz taki produkt w magazynie - jesli tak to nie ma sensu go dodawac, jesli nie nalezy dodac
             cur.execute("SELECT * FROM magazyn.cargo WHERE (supplier_id = "+str(x[0])+")")
             myresult2 = cur.fetchall()
-            if myresult2 in "()":
-                print myresult2
-            else:    
-                for x2 in myresult2:
-                    print x2
-                if x[0] in myresult2[1]:
-                    print "Znaleziono rekord:"
-                else:
-                    print "Nie ma takiego rekordu"
+            number_of_records = cur.rowcount
+            if 0 == number_of_records:
+                print "Brak produktów w magazynie ---> Dodano nowy produkt"
+                val = (x[0],int(rec_id_sector),int(rec_iterator),x[4])
+                sql = "INSERT INTO `magazyn`.`cargo` (`supplier_id`, `position_x`, `position_y`, `price`) VALUES (%s, %s, %s, %s)"
+                cur.execute(sql,val)
+            else:        
+                print("Liczba rekordów w bazie danych: %d"%number_of_records)
+                find_record = False
+                for i in myresult2:
+                    print i
+                    if x[0] == i[1]:
+                        print "Znaleziono taki produkt w magazynie"
+                        find_record = True
+                if False == find_record:
+                    print "Nie ma takiego produktu w magazynie ---> Dodano nowy produkt"
                     val = (x[0],int(rec_id_sector),int(rec_iterator),x[4])
                     sql = "INSERT INTO `magazyn`.`cargo` (`supplier_id`, `position_x`, `position_y`, `price`) VALUES (%s, %s, %s, %s)"
                     cur.execute(sql,val)
+
             db.commit()
             # 
             
@@ -128,11 +138,13 @@ print(cmd_stop.payload)
 # rec_frame3 = "3OK->CMD_STATUS"
 # rec_frame4 = "4OK->CMD_CONFIG"
 rec_frame5 = "51122334455667788170"
+rec_frame6 = "5660289145566778814"
 # ParserRecData(rec_frame1)
 # ParserRecData(rec_frame2)
 # ParserRecData(rec_frame3)
 # ParserRecData(rec_frame4)
 ParserRecData(rec_frame5)
+ParserRecData(rec_frame6)
 
 
 SendGetDataRequest()
@@ -147,7 +159,7 @@ while(1):
         temporary_flag = True
     else:
         print("Flga request_get_data_flag", request_get_data_flag)
-        db = MySQLdb.connect(host="192.168.0.51",    # your host, usually localhost
+        db = MySQLdb.connect(host=ip_address,    # your host, usually localhost
                 user="AdminPI",         # your username
                 passwd="Magisterka",  # your password
                 db="magazyn")        # name of the data base
@@ -200,7 +212,7 @@ while(1):
         res = ParserRecData(string)
         radio.stopListening()
         if res == 1 or res == 2:
-            db = MySQLdb.connect(host="192.168.0.51",    # your host, usually localhost
+            db = MySQLdb.connect(host=ip_address,    # your host, usually localhost
                     user="AdminPI",         # your username
                     passwd="Magisterka",  # your password
                     db="magazyn")        # name of the data base
@@ -211,7 +223,7 @@ while(1):
             db.commit()
             db.close()
         elif res == 5:
-            db = MySQLdb.connect(host="192.168.0.51",    # your host, usually localhost
+            db = MySQLdb.connect(host=ip_address,    # your host, usually localhost
                     user="AdminPI",         # your username
                     passwd="Magisterka",  # your password
                     db="magazyn")        # name of the data base
