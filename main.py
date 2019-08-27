@@ -20,6 +20,53 @@ class FrameRequest:
         self.cmd = cmd
         self.payload = payload
 
+def PerformAction(rec_id_card,rec_id_sector,rec_iterator):
+    print "Perform action start"
+    db = MySQLdb.connect(host="192.168.0.51",    # your host, usually localhost
+        user="AdminPI",         # your username
+        passwd="Magisterka",  # your password
+        db="magazyn")        # name of the data base
+    cur = db.cursor()
+    cur.execute("SELECT * FROM magazyn.supplier")
+    myresult = cur.fetchall()
+    db.close()
+    my_id_card = rec_id_card[0:2]+":"+rec_id_card[2:4]+":"+rec_id_card[4:6]+":"+rec_id_card[6:8]
+    my_id_sector = rec_id_sector[0:2]+":"+rec_id_sector[2:4]+":"+rec_id_sector[4:6]+":"+rec_id_sector[6:8]
+    print "Znane produkty:"
+    for x in myresult:
+        print x
+        if my_id_card in x:
+            print "Znaleziony UID:"
+            print x
+            my_id = x[0]
+            my_uid = x[1]
+            my_name = x[2]
+            db = MySQLdb.connect(host="192.168.0.51",    # your host, usually localhost
+                user="AdminPI",         # your username
+                passwd="Magisterka",  # your password
+                db="magazyn")        # name of the data base
+            cur = db.cursor()
+            
+            # sprawdzenie czy jest juz taki produkt w magazynie - jesli tak to nie ma sensu go dodawac, jesli nie nalezy dodac
+            cur.execute("SELECT * FROM magazyn.cargo WHERE (supplier_id = "+str(x[0])+")")
+            myresult2 = cur.fetchall()
+            if myresult2 in "()":
+                print myresult2
+            else:    
+                for x2 in myresult2:
+                    print x2
+                if x[0] in myresult2[1]:
+                    print "Znaleziono rekord:"
+                else:
+                    print "Nie ma takiego rekordu"
+                    val = (x[0],int(rec_id_sector),int(rec_iterator),x[4])
+                    sql = "INSERT INTO `magazyn`.`cargo` (`supplier_id`, `position_x`, `position_y`, `price`) VALUES (%s, %s, %s, %s)"
+                    cur.execute(sql,val)
+            db.commit()
+            # 
+            
+    print "Perform action stop"
+
 def ParserRecData(data):
     if data != '':
         cmd = (data[0])
@@ -43,6 +90,7 @@ def ParserRecData(data):
             print("id_card: %s",id_card)
             print("id_sector: %s",id_sector)
             print("iterator: %s",iterator)
+            PerformAction(id_card,id_sector,iterator)
             return 5
         else:
             print("Error !!")
@@ -79,12 +127,13 @@ print(cmd_stop.payload)
 # rec_frame2 = "2OK->CMD_START"
 # rec_frame3 = "3OK->CMD_STATUS"
 # rec_frame4 = "4OK->CMD_CONFIG"
-# rec_frame5 = "5123456789"
+rec_frame5 = "51122334455667788170"
 # ParserRecData(rec_frame1)
 # ParserRecData(rec_frame2)
 # ParserRecData(rec_frame3)
 # ParserRecData(rec_frame4)
-# ParserRecData(rec_frame5)
+ParserRecData(rec_frame5)
+
 
 SendGetDataRequest()
 
@@ -167,7 +216,9 @@ while(1):
                     passwd="Magisterka",  # your password
                     db="magazyn")        # name of the data base
             cur = db.cursor()
-        time.sleep(0.5)
+        # time.sleep(0.5)
+        time.sleep(1)
+        # For release version shoud be without delay :)
 
     
 
