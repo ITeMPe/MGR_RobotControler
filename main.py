@@ -8,9 +8,11 @@ import threading
 
 request_get_data_flag = False
 temporary_flag = False
-# ip_address = "192.168.0.51"
-ip_address = "192.168.137.1"
-
+ip_address = "192.168.0.50"
+# ip_address = "192.168.137.1"
+sektor_1 = "11AABBCC"
+sektor_2 = "22AABBCC"
+sektor_3 = "33AABBCC"
 
 def SendGetDataRequest():
     global request_get_data_flag
@@ -54,8 +56,17 @@ def PerformAction(rec_id_card,rec_id_sector,rec_iterator):
             myresult2 = cur.fetchall()
             number_of_records = cur.rowcount
             if 0 == number_of_records:
-                print "Brak produktów w magazynie ---> Dodano nowy produkt"
-                val = (x[0],int(rec_id_sector),int(rec_iterator),x[4])
+                print "Brak produktu w magazynie ---> Dodano nowy produkt"
+                if rec_id_sector == sektor_1:
+                    int_val_sec = 1
+                elif rec_id_sector == sektor_2:
+                    int_val_sec = 2
+                elif rec_id_sector == sektor_3:
+                    int_val_sec = 3
+                else:    
+                    int_val_sec = int(rec_id_sector,16) / 1000
+                int_val_itr = int(rec_iterator)
+                val = (x[0],int_val_sec,int_val_itr,x[4])
                 sql = "INSERT INTO `magazyn`.`cargo` (`supplier_id`, `position_x`, `position_y`, `price`) VALUES (%s, %s, %s, %s)"
                 cur.execute(sql,val)
             else:        
@@ -66,14 +77,21 @@ def PerformAction(rec_id_card,rec_id_sector,rec_iterator):
                     if x[0] == i[1]:
                         print "Znaleziono taki produkt w magazynie"
                         find_record = True
-                if False == find_record:
+                if False == find_record: #TO SIE NIE POWINNO WYDAZYC - BO ALBO PRODUKTU NIE MA I GO DODAJEMY ALBO JEST I KONIEC
                     print "Nie ma takiego produktu w magazynie ---> Dodano nowy produkt"
-                    val = (x[0],int(rec_id_sector),int(rec_iterator),x[4])
+                    if rec_id_sector == sektor_1:
+                        int_val_sec = 1
+                    elif rec_id_sector == sektor_2:
+                        int_val_sec = 2
+                    elif rec_id_sector == sektor_3:
+                        int_val_sec = 3
+                    else:    
+                        int_val_sec = int(rec_id_sector,16) / 1000
+                    int_val_itr = int(rec_iterator)
+                    val = (x[0],int_val_sec,int_val_itr,x[4])
                     sql = "INSERT INTO `magazyn`.`cargo` (`supplier_id`, `position_x`, `position_y`, `price`) VALUES (%s, %s, %s, %s)"
                     cur.execute(sql,val)
-
             db.commit()
-            # 
             
     print "Perform action stop"
 
