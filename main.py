@@ -8,17 +8,19 @@ import threading
 
 request_get_data_flag = False
 temporary_flag = False
-ip_address = "192.168.0.50"
-# ip_address = "192.168.137.1"
+# ip_address = "192.168.0.50"
+ip_address = "192.168.1.87"
 sektor_1 = "11AABBCC"
 sektor_2 = "22AABBCC"
 sektor_3 = "33AABBCC"
+myresult = ""
+
 
 def SendGetDataRequest():
     global request_get_data_flag
     request_get_data_flag = True
-    threading.Timer(3.0, SendGetDataRequest).start()
-    print "ZAPYTANIE CMD_GAT_DATA\r\n"
+    threading.Timer(10.0, SendGetDataRequest).start()
+    # print "ZAPYTANIE CMD_GAT_DATA\r\n"
 
 class FrameRequest:
     def __init__(self, cmd, payload):
@@ -37,9 +39,9 @@ def PerformAction(rec_id_card,rec_id_sector,rec_iterator):
     db.close()
     my_id_card = rec_id_card[0:2]+":"+rec_id_card[2:4]+":"+rec_id_card[4:6]+":"+rec_id_card[6:8]
     my_id_sector = rec_id_sector[0:2]+":"+rec_id_sector[2:4]+":"+rec_id_sector[4:6]+":"+rec_id_sector[6:8]
-    print "Znane produkty:"
+    # print "Znane produkty:"  #dla debugu
     for x in myresult:
-        print x
+        # print x #dla debugu
         if my_id_card in x:
             print "Znaleziony UID:"
             print x
@@ -66,7 +68,7 @@ def PerformAction(rec_id_card,rec_id_sector,rec_iterator):
                 else:    
                     int_val_sec = int(rec_id_sector,16) / 1000
                 int_val_itr = int(rec_iterator)
-                val = (x[0],int_val_sec,int_val_itr,x[4])
+                val = (x[0],my_id_sector,rec_iterator,x[4])
                 sql = "INSERT INTO `magazyn`.`cargo` (`supplier_id`, `position_x`, `position_y`, `price`) VALUES (%s, %s, %s, %s)"
                 cur.execute(sql,val)
             else:        
@@ -74,9 +76,10 @@ def PerformAction(rec_id_card,rec_id_sector,rec_iterator):
                 find_record = False
                 for i in myresult2:
                     print i
-                    if x[0] == i[1]:
+                    if x[0] == int(i[1]):
                         print "Znaleziono taki produkt w magazynie"
                         find_record = True
+                        break
                 if False == find_record: #TO SIE NIE POWINNO WYDAZYC - BO ALBO PRODUKTU NIE MA I GO DODAJEMY ALBO JEST I KONIEC
                     print "Nie ma takiego produktu w magazynie ---> Dodano nowy produkt"
                     if rec_id_sector == sektor_1:
@@ -114,7 +117,7 @@ def ParserRecData(data):
             print("Rec response  OK GET DATA")
             id_card = data[1:9]
             id_sector = data[9:17]
-            iterator =  (data[17:len(data)])
+            iterator =  data[17:len(data)]
             print("id_card: %s",id_card)
             print("id_sector: %s",id_sector)
             print("iterator: %s",iterator)
@@ -147,9 +150,9 @@ radio.openReadingPipe(1,  pipes[1])
 # radio.setChannel(0x76)
 radio.printDetails()
 
-cmd_stop = FrameRequest("CMD_STOP","asda",)
-print(cmd_stop.cmd)
-print(cmd_stop.payload)
+# cmd_stop = FrameRequest("CMD_STOP","asda",)
+# print(cmd_stop.cmd)
+# print(cmd_stop.payload)
 
 # rec_frame1 = "1OK->CMD_STOP"
 # rec_frame2 = "2OK->CMD_START"
@@ -161,8 +164,8 @@ rec_frame6 = "5660289145566778814"
 # ParserRecData(rec_frame2)
 # ParserRecData(rec_frame3)
 # ParserRecData(rec_frame4)
-ParserRecData(rec_frame5)
-ParserRecData(rec_frame6)
+# ParserRecData(rec_frame5)
+# ParserRecData(rec_frame6)
 
 
 SendGetDataRequest()
@@ -172,11 +175,11 @@ while(1):
     if request_get_data_flag == True:
         print("Flga request_get_data_flag", request_get_data_flag)
         request_get_data_flag = False
-        radio.stopListening()
+        # radio.stopListening()
         message = list("5_CMD_GET_DATA")
         temporary_flag = True
     else:
-        print("Flga request_get_data_flag", request_get_data_flag)
+        # print("Flga request_get_data_flag", request_get_data_flag)
         db = MySQLdb.connect(host=ip_address,    # your host, usually localhost
                 user="AdminPI",         # your username
                 passwd="Magisterka",  # your password
@@ -185,9 +188,9 @@ while(1):
         cur.execute("SELECT * FROM `comandsmode` WHERE id=(SELECT MAX(id) FROM `comandsmode`)")
         myresult = cur.fetchone()
         db.close()
-        print myresult
         var = myresult[2]
         if var == 0:
+            # print myresult  
             for raw in cur.fetchall():
                 print raw
             if myresult[1] == 1:
@@ -202,14 +205,15 @@ while(1):
                 message = list("5_CMD_GET_DATA")
             else:
                 message = list("No command to send !!")    
-            radio.stopListening()
             temporary_flag = True
     if temporary_flag == True:
         temporary_flag = False
+        radio.stopListening()
         while len(message)<32:
             message.append(0)
         start = time.time()
         radio.write(message)
+        # pirint("Status send: %d",status_send )
         print("Sent the message: {}".format(message))
         radio.startListening()
         while not radio.available(0):
@@ -228,7 +232,7 @@ while(1):
                 string += chr(n)
         print("Out received message decodes to: {}".format(string))
         res = ParserRecData(string)
-        radio.stopListening()
+        # radio.stopListening()
         if res == 1 or res == 2:
             db = MySQLdb.connect(host=ip_address,    # your host, usually localhost
                     user="AdminPI",         # your username
